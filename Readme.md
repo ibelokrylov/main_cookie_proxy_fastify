@@ -1,6 +1,11 @@
 .env
 
-для локального тестирования изменить PORT = 3000 ADDRESS = 'localhost' BASE*URL = LOCAL_HOST*ТВОЕГО_АПП
+для локального тестирования изменить
+```env
+PORT = 3000
+ADDRESS = 'localhost'
+BASE_URL = LOCAL_HOST_ТВОЕГО_АПП
+```
 
 ```shell
 
