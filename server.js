@@ -1,9 +1,14 @@
-import Fastify from 'fastify';
-import cookie from '@fastify/cookie';
-import 'dotenv/config';
-import fetch from 'node-fetch';
+import Fastify from "fastify";
+import cookie from "@fastify/cookie";
+import "dotenv/config";
+import fetch from "node-fetch";
 
-const { PORT = 3000, ADDRESS = 'localhost', COOKIE_SECRET = 'my-secret', BASE_URL = 'http://212.113.117.104' } = process.env;
+const {
+  PORT = 3000,
+  ADDRESS = "localhost",
+  COOKIE_SECRET = "my-secret",
+  BASE_URL = "http://212.113.117.104",
+} = process.env;
 
 const fastify = Fastify({
   logger: true,
@@ -12,9 +17,9 @@ const fastify = Fastify({
 fastify.register(cookie, {
   secret: COOKIE_SECRET,
   parseOptions: {
-    path: '/',
+    path: "/",
     signed: true,
-    sameSite: 'none',
+    sameSite: "none",
     secure: true,
     httpOnly: true,
   },
@@ -35,7 +40,13 @@ const serializeAllRequest = async (request) => {
       return _cookie;
     };
     const { cookie: _, ..._headers } = headers;
-    return { data, headers: _headers, cookie: cookie(), method: request.method, url: request.url };
+    return {
+      data,
+      headers: _headers,
+      cookie: cookie(),
+      method: request.method,
+      url: request.url,
+    };
   } catch (err) {
     fastify.log.error(err);
   }
@@ -58,21 +69,24 @@ const create_response = (reply, body) => {
 
 const fetch_to_server_app = async (body) => {
   const { method, url, ..._body } = body;
+  const _url = BASE_URL + url;
+  console.log(_url);
   const response_data =
-    method === 'GET'
-      ? await fetch(BASE_URL + url, {
+    method === "GET"
+      ? await fetch(_url, {
           method,
         })
-      : await fetch(BASE_URL + url, {
+      : await fetch(_url, {
           method,
           body: _body,
         });
   return response_data;
 };
 
-fastify.all('*', async function handler(request, reply) {
+fastify.all("*", async function handler(request, reply) {
   const data = await serializeAllRequest(request);
   const response_data = await fetch_to_server_app(data);
+  console.log(response_data);
   return create_response(reply, response_data);
 });
 
