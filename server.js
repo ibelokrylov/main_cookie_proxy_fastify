@@ -12,7 +12,6 @@ const {
 
 const fastify = Fastify({
   logger: true
-
 });
 
 fastify.register(cookie, {
@@ -25,6 +24,10 @@ fastify.register(cookie, {
     httpOnly: true,
   },
 });
+
+const consoleLog = ({level = 'info', ...body}) => {
+  console?.[level]?.(new Date(), '-', body);
+};
 
 const serializeAllRequest = async (request) => {
   try {
@@ -49,7 +52,11 @@ const serializeAllRequest = async (request) => {
       url: request.url,
       fastify
     };
-    fastify.log.info(`Входящие данные от пользователя: ${JSON.stringify(result)}`);
+    consoleLog({
+      'data From user': result.data
+    });
+    consoleLog({'cookie From user: ': result.cookie});
+    consoleLog({'url From user: ': result.url});
     return result;
   } catch (err) {
     fastify.log.error(err);
@@ -58,37 +65,52 @@ const serializeAllRequest = async (request) => {
 
 const create_response = (reply, body) => {
   try {
-    const {headers, cookie, data} = body;
+    const {headers, cookie, status} = body;
     if (cookie) {
       Object.keys(cookie).map((item) => {
         reply.setCookie(item, cookie[item]);
       });
     }
     reply.headers(headers);
-    fastify.log.info(`Заголовки отправленные пользователю: ${JSON.stringify(headers)}`);
-    fastify.log.info(`Данные отправленные пользователю:  ${JSON.stringify(data)}`);
-    return data;
+    reply.status(status);
+    return body.json();
   } catch (error) {
-    fastify.log.error(error);
+    console.error(error);
+    throw new Error();
   }
 };
 
 const fetch_to_server_app = async (body) => {
   const {method, url, ..._body} = body;
-  fastify.log.info(`URL пришедшего запроса: ${JSON.stringify(url)}`);
   const _url = BASE_URL + url;
-  fastify.log.info(`URL запроса от прокси сервиса: ${JSON.stringify(_url)}`);
-  const response_data =
-    method === 'GET'
+  consoleLog({url_to_server: _url});
+  consoleLog({
+    method: method
+  });
+  consoleLog({
+    send_body: {
+      data: _body.data ?? undefined,
+      cookie: _body.cookie ?? undefined,
+      headers: _body.headers ?? undefined
+    }
+  });
+  try {
+    return method === 'GET'
       ? await fetch(_url, {
         method,
       })
       : await fetch(_url, {
         method,
-        body: _body,
+        body: JSON.stringify({
+          data: _body.data ?? undefined,
+          cookie: _body.cookie ?? undefined,
+          headers: _body.headers ?? undefined
+        }),
       });
-  fastify.log.info(`Данные пришедшие с сервера: ${JSON.stringify(response_data)}`);
-  return response_data;
+  } catch (e) {
+    console.error(e);
+    throw new Error();
+  }
 };
 
 fastify.all('*', async function handler(request, reply) {
@@ -100,6 +122,6 @@ fastify.all('*', async function handler(request, reply) {
 try {
   await fastify.listen(PORT, ADDRESS);
 } catch (err) {
-  fastify.log.error(err);
+  console.error(err);
   process.exit(1);
 }
