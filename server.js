@@ -2,7 +2,6 @@ import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import 'dotenv/config';
 import fetch from 'node-fetch';
-import path from 'node:path';
 
 const {
   PORT = 3000,
