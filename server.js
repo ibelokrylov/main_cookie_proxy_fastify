@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import 'dotenv/config';
 import fetch from 'node-fetch';
+import path from 'node:path';
 
 const {
   PORT = 3000,
@@ -11,7 +12,8 @@ const {
 } = process.env;
 
 const fastify = Fastify({
-  logger: true,
+  logger: true
+
 });
 
 fastify.register(cookie, {
@@ -48,7 +50,7 @@ const serializeAllRequest = async (request) => {
       url: request.url,
       fastify
     };
-    fastify.log.info('Входящие данные от пользователя: ', result);
+    fastify.log.info(`Входящие данные от пользователя: ${JSON.stringify(result)}`);
     return result;
   } catch (err) {
     fastify.log.error(err);
@@ -64,8 +66,8 @@ const create_response = (reply, body) => {
       });
     }
     reply.headers(headers);
-    fastify.log.info('Заголовки отправленные пользователю: ', headers);
-    fastify.log.info('Данные отправленные пользователю:  ', data);
+    fastify.log.info(`Заголовки отправленные пользователю: ${JSON.stringify(headers)}`);
+    fastify.log.info(`Данные отправленные пользователю:  ${JSON.stringify(data)}`);
     return data;
   } catch (error) {
     fastify.log.error(error);
@@ -74,9 +76,9 @@ const create_response = (reply, body) => {
 
 const fetch_to_server_app = async (body) => {
   const {method, url, ..._body} = body;
-  fastify.log.info('URL пришедшего запроса: ', url);
+  fastify.log.info(`URL пришедшего запроса: ${JSON.stringify(url)}`);
   const _url = BASE_URL + url;
-  fastify.log.info('URL запроса от прокси сервиса: ', _url);
+  fastify.log.info(`URL запроса от прокси сервиса: ${JSON.stringify(_url)}`);
   const response_data =
     method === 'GET'
       ? await fetch(_url, {
@@ -86,7 +88,7 @@ const fetch_to_server_app = async (body) => {
         method,
         body: _body,
       });
-  fastify.log.info('Данные пришедшие с сервера: ', response_data);
+  fastify.log.info(`Данные пришедшие с сервера: ${JSON.stringify(response_data)}`);
   return response_data;
 };
 
