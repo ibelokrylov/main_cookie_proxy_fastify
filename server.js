@@ -1,13 +1,13 @@
-import Fastify from "fastify";
-import cookie from "@fastify/cookie";
-import "dotenv/config";
-import fetch from "node-fetch";
+import Fastify from 'fastify';
+import cookie from '@fastify/cookie';
+import 'dotenv/config';
+import fetch from 'node-fetch';
 
 const {
   PORT = 3000,
-  ADDRESS = "localhost",
-  COOKIE_SECRET = "my-secret",
-  BASE_URL = "http://212.113.117.104",
+  ADDRESS = 'localhost',
+  COOKIE_SECRET = 'my-secret',
+  BASE_URL = 'http://212.113.117.104',
 } = process.env;
 
 const fastify = Fastify({
@@ -17,9 +17,9 @@ const fastify = Fastify({
 fastify.register(cookie, {
   secret: COOKIE_SECRET,
   parseOptions: {
-    path: "/",
+    path: '/',
     signed: true,
-    sameSite: "none",
+    sameSite: 'none',
     secure: true,
     httpOnly: true,
   },
@@ -32,21 +32,24 @@ const serializeAllRequest = async (request) => {
     const cookie = () => {
       let _cookie = {};
       Object.keys(request.cookies).map((item) => {
-        const { valid, value } = request.unsignCookie(request.cookies[item]);
+        const {valid, value} = request.unsignCookie(request.cookies[item]);
         if (valid) {
           _cookie[item] = value;
         }
       });
       return _cookie;
     };
-    const { cookie: _, ..._headers } = headers;
-    return {
+    const {cookie: _, ..._headers} = headers;
+    const result = {
       data,
       headers: _headers,
       cookie: cookie(),
       method: request.method,
       url: request.url,
+      fastify
     };
+    fastify.log.info('Входящие данные от пользователя: ', result);
+    return result;
   } catch (err) {
     fastify.log.error(err);
   }
@@ -54,13 +57,15 @@ const serializeAllRequest = async (request) => {
 
 const create_response = (reply, body) => {
   try {
-    const { headers, cookie, data } = body;
+    const {headers, cookie, data} = body;
     if (cookie) {
       Object.keys(cookie).map((item) => {
         reply.setCookie(item, cookie[item]);
       });
     }
     reply.headers(headers);
+    fastify.log.info('Заголовки отправленные пользователю: ', headers);
+    fastify.log.info('Данные отправленные пользователю:  ', data);
     return data;
   } catch (error) {
     fastify.log.error(error);
@@ -68,25 +73,26 @@ const create_response = (reply, body) => {
 };
 
 const fetch_to_server_app = async (body) => {
-  const { method, url, ..._body } = body;
+  const {method, url, ..._body} = body;
+  fastify.log.info('URL пришедшего запроса: ', url);
   const _url = BASE_URL + url;
-  console.log(_url);
+  fastify.log.info('URL запроса от прокси сервиса: ', _url);
   const response_data =
-    method === "GET"
+    method === 'GET'
       ? await fetch(_url, {
-          method,
-        })
+        method,
+      })
       : await fetch(_url, {
-          method,
-          body: _body,
-        });
+        method,
+        body: _body,
+      });
+  fastify.log.info('Данные пришедшие с сервера: ', response_data);
   return response_data;
 };
 
-fastify.all("*", async function handler(request, reply) {
+fastify.all('*', async function handler(request, reply) {
   const data = await serializeAllRequest(request);
   const response_data = await fetch_to_server_app(data);
-  console.log(response_data);
   return create_response(reply, response_data);
 });
 
